@@ -8,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Move, LogEntry, Workout } from '../types';
+import { Move, LogEntry, Workout, HeartRateSample } from '../types';
 import { NumericKeypad } from './NumericKeypad';
 import { MoveSelector } from './MoveSelector';
 import { EventHistory } from './EventHistory';
@@ -49,6 +49,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
   const [pendingNote, setPendingNote] = useState('');
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [hrSamples, setHrSamples] = useState<HeartRateSample[]>([]);
 
   // Sticky inputs state
   const [isWeightSticky, setIsWeightSticky] = useState(false);
@@ -616,7 +617,9 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
 
       <SettingsModal
         visible={showSettings}
+        workouts={workouts}
         onDismiss={() => setShowSettings(false)}
+        onHRImported={(newSamples) => setHrSamples((prev) => [...prev, ...newSamples])}
       />
 
       <AddMoveModal
@@ -631,6 +634,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
           entries={entries}
           moves={moves}
           workouts={workouts}
+          hrSamples={hrSamples}
           isRefreshing={isRefreshing}
           onRefresh={handleRefresh}
         />
