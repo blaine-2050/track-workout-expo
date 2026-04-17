@@ -14,6 +14,7 @@ import { MoveSelector } from './MoveSelector';
 import { EventHistory } from './EventHistory';
 import { IntervalEntry } from './IntervalEntry';
 import { WorkoutStatusBar } from './WorkoutStatusBar';
+import { AddMoveModal } from './AddMoveModal';
 import { formatElapsed } from '../utils/formatElapsed';
 import * as api from '../api/client';
 
@@ -38,6 +39,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAddMove, setShowAddMove] = useState(false);
 
   // Sticky inputs state
   const [isWeightSticky, setIsWeightSticky] = useState(false);
@@ -179,7 +181,13 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
   };
 
   const handleAddMove = () => {
-    Alert.alert('Add Move', 'Custom move creation is coming soon.');
+    setShowAddMove(true);
+  };
+
+  const handleSaveNewMove = (newMove: Move) => {
+    setMoves((prev) => [...prev, newMove].sort((a, b) => a.name.localeCompare(b.name)));
+    setShowAddMove(false);
+    handleMoveSelect(newMove);
   };
 
   const advanceIntervalField = () => {
@@ -468,6 +476,13 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
           )}
         </TouchableOpacity>
       </View>
+
+      <AddMoveModal
+        visible={showAddMove}
+        existingMoves={moves}
+        onSave={handleSaveNewMove}
+        onCancel={() => setShowAddMove(false)}
+      />
 
       <View style={styles.historySection}>
         <EventHistory
