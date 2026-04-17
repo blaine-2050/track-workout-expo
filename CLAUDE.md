@@ -25,15 +25,17 @@ This app was feature-complete against spec **v1** as of 2026-02-26. The v2/v2.1 
 | Workout lifecycle (start, stop, summary) | ✅ v1 |
 | Interval entry (HH:MM:SS) | ✅ v1 |
 | CSV export | ✅ v1 |
-| Free-form move names (+ new move) | ❌ needs impl |
-| Notes on entries | ❌ needs impl |
-| Cardio tap-start / tap-stop | ❌ needs impl |
-| note_only entries | ❌ needs impl |
-| Settings (sync opt-in, endpoint, API key) | ❌ needs impl |
-| HR CSV import | ❌ needs impl |
-| Move.measurementType on schema | ❌ needs impl |
-| LogEntry.moveName, LogEntry.notes | ❌ needs impl |
-| HeartRateSample entity | ❌ needs impl |
+| Move.measurementType on schema | ✅ v2 (feat/data-model-v2) |
+| LogEntry.moveName, LogEntry.notes | ✅ v2 (feat/data-model-v2) |
+| HeartRateSample type | ✅ v2 (feat/data-model-v2) |
+| Free-form move names (+ new move) | ✅ v2 (feat/free-form-moves) |
+| Cardio tap-start / tap-stop | ✅ v2 (feat/cardio-tap-start) |
+| Notes on entries | ✅ v2 (feat/notes) |
+| note_only entries | ✅ v2 (feat/notes) |
+| Settings (sync opt-in, endpoint, API key) | ✅ v2 (feat/settings-sync-opt-in) |
+| HR CSV import (demo fixture) | ✅ v2.1 (feat/hr-import) |
+| HR CSV file-picker import | ❌ needs Expo DocumentPicker |
+| Sync gated behind toggle at runtime | ❌ settings captured, gating not wired |
 
 ## Stack
 - **Framework**: Expo (managed workflow)
