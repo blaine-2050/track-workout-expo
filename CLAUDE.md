@@ -34,8 +34,8 @@ This app was feature-complete against spec **v1** as of 2026-02-26. The v2/v2.1 
 | note_only entries | ✅ v2 (feat/notes) |
 | Settings (sync opt-in, endpoint, API key) | ✅ v2 (feat/settings-sync-opt-in) |
 | HR CSV import (demo fixture) | ✅ v2.1 (feat/hr-import) |
-| HR CSV file-picker import | ❌ needs Expo DocumentPicker |
-| Sync gated behind toggle at runtime | ❌ settings captured, gating not wired |
+| HR CSV file-picker import | ✅ v2.1 (fix/remaining-gaps) |
+| Sync gated behind toggle at runtime | ✅ v2.1 (fix/remaining-gaps) |
 
 ## Stack
 - **Framework**: Expo (managed workflow)
