@@ -10,6 +10,8 @@ import {
   ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { HeartRateSample, Workout } from '../types';
 import { parseHRCSV, alignAndPersist, syntheticHRCSV } from '../utils/hrImporter';
 
@@ -32,6 +34,31 @@ export function SettingsModal({ visible, workouts, onDismiss, onHRImported }: Se
   const [apiKey, setApiKey] = useState('');
   const [testResult, setTestResult] = useState('');
   const [hrImportResult, setHrImportResult] = useState('');
+  const [hrImportError, setHrImportError] = useState('');
+
+  const handleFileImport = async () => {
+    setHrImportResult('');
+    setHrImportError('');
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/comma-separated-values', 'text/plain', '*/*'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const csv = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'utf8' });
+      const { samples: parsed, skipped } = parseHRCSV(csv);
+      const source = `file:${asset.name ?? 'unknown'}`;
+      const { result: importResult, samples } = alignAndPersist(parsed, source, workouts);
+      onHRImported(samples);
+      setHrImportResult(
+        `${importResult.persisted} samples, ${importResult.aligned} aligned` +
+        (skipped > 0 ? ` · ${skipped} rows skipped` : '')
+      );
+    } catch (err: any) {
+      setHrImportError(`Import failed: ${err.message ?? err}`);
+    }
+  };
 
   useEffect(() => {
     if (!visible) return;
@@ -126,19 +153,28 @@ export function SettingsModal({ visible, workouts, onDismiss, onHRImported }: Se
             <Text style={styles.sectionTitle}>Heart rate</Text>
             <TouchableOpacity
               style={styles.testBtn}
+              onPress={handleFileImport}
+            >
+              <Text style={styles.testBtnText}>Import HR CSV from file…</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.testBtn}
               onPress={() => {
                 const csv = syntheticHRCSV(60);
-                const { samples: parsed, skipped } = parseHRCSV(csv);
+                const { samples: parsed } = parseHRCSV(csv);
                 const { result, samples } = alignAndPersist(parsed, 'demo-fixture', workouts);
                 onHRImported(samples);
                 setHrImportResult(`${result.persisted} samples, ${result.aligned} aligned`);
               }}
             >
               <Text style={styles.testBtnText}>Import demo HR data</Text>
-              {hrImportResult ? (
-                <Text style={[styles.testResult, styles.testOk]}>{hrImportResult}</Text>
-              ) : null}
             </TouchableOpacity>
+            {hrImportResult ? (
+              <Text style={[styles.testResult, styles.testOk, { marginTop: 4 }]}>{hrImportResult}</Text>
+            ) : null}
+            {hrImportError ? (
+              <Text style={[styles.testResult, styles.testFail, { marginTop: 4 }]}>{hrImportError}</Text>
+            ) : null}
           </ScrollView>
 
           <TouchableOpacity style={styles.doneBtn} onPress={save}>

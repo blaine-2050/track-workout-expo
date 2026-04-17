@@ -17,11 +17,27 @@ const ENTRIES_KEY = 'log_entries';
 let mockLogEntries: LogEntry[] = [...MOCK_LOG_ENTRIES];
 let mockWorkouts: Workout[] = [];
 
+/** Check if the user has enabled sync in Settings. */
+async function isSyncEnabled(): Promise<boolean> {
+  const val = await AsyncStorage.getItem('settings.syncEnabled');
+  return val === 'true';
+}
+
+/** Get the configured sync endpoint (falls back to localhost for dev). */
+async function getSyncEndpoint(): Promise<string> {
+  const ep = await AsyncStorage.getItem('settings.syncEndpoint');
+  return ep && ep.trim().length > 0 ? ep.trim() : API_BASE;
+}
+
 export async function isApiAvailable(): Promise<boolean> {
+  // If sync is disabled, don't even try the network.
+  if (!(await isSyncEnabled())) return false;
   try {
+    const base = await getSyncEndpoint();
+    const healthUrl = base.replace('/sync/events', '') + '/health';
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const response = await fetch(`${API_BASE}/health`, {
+    const response = await fetch(healthUrl, {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
