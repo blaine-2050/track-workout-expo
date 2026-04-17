@@ -15,6 +15,7 @@ import { EventHistory } from './EventHistory';
 import { IntervalEntry } from './IntervalEntry';
 import { WorkoutStatusBar } from './WorkoutStatusBar';
 import { AddMoveModal } from './AddMoveModal';
+import { CardioEntry } from './CardioEntry';
 import { formatElapsed } from '../utils/formatElapsed';
 import * as api from '../api/client';
 
@@ -40,6 +41,9 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddMove, setShowAddMove] = useState(false);
+  const [cardioSegmentStart, setCardioSegmentStart] = useState<string | null>(null);
+  const [cardioManualEntry, setCardioManualEntry] = useState(false);
+  const isCardioRunning = cardioSegmentStart !== null;
 
   // Sticky inputs state
   const [isWeightSticky, setIsWeightSticky] = useState(false);
@@ -149,6 +153,8 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
     setMoveSelectedAt(undefined);
     setLastLoggedAt(undefined);
     setTimerDisplay('');
+    setCardioSegmentStart(null);
+    setCardioManualEntry(false);
   };
 
   const handleMoveSelect = async (move: Move) => {
@@ -178,10 +184,47 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
     setIntervalMinutes('');
     setIntervalSeconds('');
     setIntervalField('hours');
+    setCardioSegmentStart(null);
+    setCardioManualEntry(false);
   };
 
   const handleAddMove = () => {
     setShowAddMove(true);
+  };
+
+  const handleCardioStart = async () => {
+    if (!currentWorkout) {
+      const workout = await api.createWorkout();
+      setWorkouts((prev) => [workout, ...prev]);
+      setCurrentWorkout(workout);
+    }
+    setCardioSegmentStart(new Date().toISOString());
+  };
+
+  const handleCardioStop = async () => {
+    if (!cardioSegmentStart || !selectedMove) return;
+    const now = new Date().toISOString();
+    const durationSeconds = Math.max(0, Math.floor(
+      (new Date(now).getTime() - new Date(cardioSegmentStart).getTime()) / 1000
+    ));
+    stampPreviousEntry(now);
+    try {
+      const newEntry = await api.createLogEntry(selectedMove.id, {
+        measurementType: 'duration',
+        moveName: selectedMove.name,
+        durationSeconds,
+        startedAt: cardioSegmentStart,
+        endedAt: now,
+        workoutId: currentWorkout?.id,
+        weightUnit,
+      });
+      setEntries((prev) => [newEntry, ...prev]);
+      setLastLoggedAt(now);
+      setMoveSelectedAt(now);
+    } catch {
+      Alert.alert('Error', 'Failed to log cardio segment');
+    }
+    setCardioSegmentStart(null);
   };
 
   const handleSaveNewMove = (newMove: Move) => {
@@ -357,57 +400,80 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.entryPanels}>
-          <View style={styles.entryPanel}>
-            <View style={styles.valueInputs}>
-              <TouchableOpacity
-                style={[
-                  styles.valueField,
-                  activeField === 'weight' && styles.activeField,
-                  isIntervalMove && styles.disabledField,
-                  isWeightSticky && styles.stickyField,
-                ]}
-                onPress={() => !isIntervalMove && setActiveField('weight')}
-                disabled={isIntervalMove}
-              >
-                <Text style={styles.valueLabel}>Weight ({weightUnit})</Text>
-                <Text style={[styles.valueDisplay, isWeightSticky && styles.stickyText]}>
-                  {weight || '0'}
-                </Text>
+        {isIntervalMove && !cardioManualEntry ? (
+          /* Cardio primary path: tap-start / tap-stop */
+          <View>
+            <CardioEntry
+              isRunning={isCardioRunning}
+              startTime={cardioSegmentStart}
+              onStart={handleCardioStart}
+              onStop={handleCardioStop}
+            />
+            {!isCardioRunning && (
+              <TouchableOpacity onPress={() => setCardioManualEntry(true)}>
+                <Text style={styles.manualEntryLink}>Enter duration manually</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.valueField,
-                  activeField === 'reps' && styles.activeField,
-                  isIntervalMove && styles.disabledField,
-                  isRepsSticky && styles.stickyField,
-                ]}
-                onPress={() => !isIntervalMove && setActiveField('reps')}
-                disabled={isIntervalMove}
-              >
-                <Text style={styles.valueLabel}>Reps</Text>
-                <Text style={[styles.valueDisplay, isRepsSticky && styles.stickyText]}>
-                  {reps || '0'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.entryPanel}>
-            {isIntervalMove ? (
-              <IntervalEntry
-                hours={intervalHours}
-                minutes={intervalMinutes}
-                seconds={intervalSeconds}
-                activeField={intervalField}
-                onSelectField={setIntervalField}
-              />
-            ) : (
-              <Text style={styles.intervalPlaceholder}>HH:MM:SS</Text>
             )}
           </View>
-        </View>
+        ) : (
+          /* Strength path or manual cardio entry */
+          <View style={styles.entryPanels}>
+            <View style={styles.entryPanel}>
+              <View style={styles.valueInputs}>
+                <TouchableOpacity
+                  style={[
+                    styles.valueField,
+                    activeField === 'weight' && styles.activeField,
+                    isIntervalMove && styles.disabledField,
+                    isWeightSticky && styles.stickyField,
+                  ]}
+                  onPress={() => !isIntervalMove && setActiveField('weight')}
+                  disabled={isIntervalMove}
+                >
+                  <Text style={styles.valueLabel}>Weight ({weightUnit})</Text>
+                  <Text style={[styles.valueDisplay, isWeightSticky && styles.stickyText]}>
+                    {weight || '0'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.valueField,
+                    activeField === 'reps' && styles.activeField,
+                    isIntervalMove && styles.disabledField,
+                    isRepsSticky && styles.stickyField,
+                  ]}
+                  onPress={() => !isIntervalMove && setActiveField('reps')}
+                  disabled={isIntervalMove}
+                >
+                  <Text style={styles.valueLabel}>Reps</Text>
+                  <Text style={[styles.valueDisplay, isRepsSticky && styles.stickyText]}>
+                    {reps || '0'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.entryPanel}>
+              {isIntervalMove ? (
+                <View>
+                  <IntervalEntry
+                    hours={intervalHours}
+                    minutes={intervalMinutes}
+                    seconds={intervalSeconds}
+                    activeField={intervalField}
+                    onSelectField={setIntervalField}
+                  />
+                  <TouchableOpacity onPress={() => setCardioManualEntry(false)}>
+                    <Text style={styles.manualEntryLink}>Tap-start mode</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={styles.intervalPlaceholder}>HH:MM:SS</Text>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Unit picker + set timer line */}
         <View style={styles.unitTimerRow}>
@@ -460,7 +526,8 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
           allowLeadingZero={isIntervalMove}
         />
 
-        <TouchableOpacity
+        {/* Hide Log button when cardio tap-start mode owns the action */}
+        {!(isIntervalMove && !cardioManualEntry) && <TouchableOpacity
           style={[
             styles.logButton,
             (isSubmitting || (isIntervalMove ? totalIntervalSeconds <= 0 : !weight || !reps)) &&
@@ -474,7 +541,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
           ) : (
             <Text style={styles.logButtonText}>Log Entry</Text>
           )}
-        </TouchableOpacity>
+        </TouchableOpacity>}
       </View>
 
       <AddMoveModal
@@ -650,5 +717,11 @@ const styles = StyleSheet.create({
   historySection: {
     flex: 1,
     padding: 16,
+  },
+  manualEntryLink: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 13,
+    marginTop: 8,
   },
 });
