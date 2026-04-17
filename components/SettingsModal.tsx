@@ -10,6 +10,8 @@ import {
   ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { HeartRateSample, Workout } from '../types';
+import { parseHRCSV, alignAndPersist, syntheticHRCSV } from '../utils/hrImporter';
 
 const KEYS = {
   syncEnabled: 'settings.syncEnabled',
@@ -19,14 +21,17 @@ const KEYS = {
 
 interface SettingsModalProps {
   visible: boolean;
+  workouts: Workout[];
   onDismiss: () => void;
+  onHRImported: (samples: HeartRateSample[]) => void;
 }
 
-export function SettingsModal({ visible, onDismiss }: SettingsModalProps) {
+export function SettingsModal({ visible, workouts, onDismiss, onHRImported }: SettingsModalProps) {
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [testResult, setTestResult] = useState('');
+  const [hrImportResult, setHrImportResult] = useState('');
 
   useEffect(() => {
     if (!visible) return;
@@ -118,6 +123,22 @@ export function SettingsModal({ visible, onDismiss }: SettingsModalProps) {
                 </TouchableOpacity>
               </>
             )}
+            <Text style={styles.sectionTitle}>Heart rate</Text>
+            <TouchableOpacity
+              style={styles.testBtn}
+              onPress={() => {
+                const csv = syntheticHRCSV(60);
+                const { samples: parsed, skipped } = parseHRCSV(csv);
+                const { result, samples } = alignAndPersist(parsed, 'demo-fixture', workouts);
+                onHRImported(samples);
+                setHrImportResult(`${result.persisted} samples, ${result.aligned} aligned`);
+              }}
+            >
+              <Text style={styles.testBtnText}>Import demo HR data</Text>
+              {hrImportResult ? (
+                <Text style={[styles.testResult, styles.testOk]}>{hrImportResult}</Text>
+              ) : null}
+            </TouchableOpacity>
           </ScrollView>
 
           <TouchableOpacity style={styles.doneBtn} onPress={save}>

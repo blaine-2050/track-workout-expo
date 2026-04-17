@@ -6,13 +6,14 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
-import { LogEntry, Move, Workout } from '../types';
+import { LogEntry, Move, Workout, HeartRateSample } from '../types';
 import { formatElapsed, formatTime } from '../utils/formatElapsed';
 
 interface EventHistoryProps {
   entries: LogEntry[];
   moves: Move[];
   workouts: Workout[];
+  hrSamples?: HeartRateSample[];
   isRefreshing: boolean;
   onRefresh: () => void;
 }
@@ -122,6 +123,7 @@ export function EventHistory({
   entries,
   moves,
   workouts,
+  hrSamples = [],
   isRefreshing,
   onRefresh,
 }: EventHistoryProps) {
@@ -134,6 +136,16 @@ export function EventHistory({
   }, []);
 
   const groups = buildWorkoutGroups(entries, moves, workouts);
+
+  // HR summary per workout
+  const hrByWorkout = new Map<string, HeartRateSample[]>();
+  for (const s of hrSamples) {
+    if (s.workoutId) {
+      const arr = hrByWorkout.get(s.workoutId) ?? [];
+      arr.push(s);
+      hrByWorkout.set(s.workoutId, arr);
+    }
+  }
 
   if (entries.length === 0) {
     return (
@@ -174,6 +186,21 @@ export function EventHistory({
                 <Text style={styles.workoutTitle}>Previous Entries</Text>
               </View>
             )}
+
+            {/* HR summary badge */}
+            {group.workout?.id && (() => {
+              const hrs = hrByWorkout.get(group.workout!.id);
+              if (!hrs || hrs.length === 0) return null;
+              const bpms = hrs.map(s => s.bpm).filter(b => b > 0);
+              if (bpms.length === 0) return null;
+              const avg = Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length);
+              const max = Math.max(...bpms);
+              return (
+                <Text style={styles.hrBadge}>
+                  HR: avg {avg} · max {max} bpm · {bpms.length} samples
+                </Text>
+              );
+            })()}
 
             {/* Workout summary (if ended) */}
             {group.workout?.endTime && (
@@ -363,6 +390,12 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#888',
     marginTop: 2,
+    paddingLeft: 4,
+  },
+  hrBadge: {
+    fontSize: 12,
+    color: '#FF3B30',
+    marginVertical: 2,
     paddingLeft: 4,
   },
 });
