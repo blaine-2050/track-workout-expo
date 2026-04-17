@@ -194,7 +194,9 @@ export function EventHistory({
                 {set.entries.map((entry) => (
                   <View key={entry.id} style={styles.entryRow}>
                     <View style={styles.entryLeft}>
-                      {entry.durationSeconds !== undefined && entry.measurementType === 'duration' ? (
+                      {entry.measurementType === 'note_only' ? (
+                        <Text style={styles.entryText}>📝 Note</Text>
+                      ) : entry.durationSeconds !== undefined && entry.measurementType === 'duration' ? (
                         <Text style={styles.entryText}>
                           Duration: {formatDurationHMS(entry.durationSeconds)}
                         </Text>
@@ -203,6 +205,9 @@ export function EventHistory({
                           {entry.weight} x {entry.reps} = {entry.weight * entry.reps}
                         </Text>
                       )}
+                      {entry.notes ? (
+                        <Text style={styles.entryNote}>{entry.notes}</Text>
+                      ) : null}
                     </View>
                     <Text style={styles.entryElapsed}>
                       {formatElapsed(entry.startedAt, entry.endedAt, now)}
@@ -352,5 +357,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
     marginLeft: 8,
+  },
+  entryNote: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#888',
+    marginTop: 2,
+    paddingLeft: 4,
   },
 });

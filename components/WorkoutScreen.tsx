@@ -16,6 +16,7 @@ import { IntervalEntry } from './IntervalEntry';
 import { WorkoutStatusBar } from './WorkoutStatusBar';
 import { AddMoveModal } from './AddMoveModal';
 import { CardioEntry } from './CardioEntry';
+import { NoteModal } from './NoteModal';
 import { formatElapsed } from '../utils/formatElapsed';
 import * as api from '../api/client';
 
@@ -44,6 +45,8 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
   const [cardioSegmentStart, setCardioSegmentStart] = useState<string | null>(null);
   const [cardioManualEntry, setCardioManualEntry] = useState(false);
   const isCardioRunning = cardioSegmentStart !== null;
+  const [pendingNote, setPendingNote] = useState('');
+  const [showNoteModal, setShowNoteModal] = useState(false);
 
   // Sticky inputs state
   const [isWeightSticky, setIsWeightSticky] = useState(false);
@@ -209,6 +212,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
     ));
     stampPreviousEntry(now);
     try {
+      const trimmedNote = pendingNote.trim();
       const newEntry = await api.createLogEntry(selectedMove.id, {
         measurementType: 'duration',
         moveName: selectedMove.name,
@@ -217,10 +221,12 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
         endedAt: now,
         workoutId: currentWorkout?.id,
         weightUnit,
+        notes: trimmedNote || undefined,
       });
       setEntries((prev) => [newEntry, ...prev]);
       setLastLoggedAt(now);
       setMoveSelectedAt(now);
+      setPendingNote('');
     } catch {
       Alert.alert('Error', 'Failed to log cardio segment');
     }
@@ -293,6 +299,35 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
       Alert.alert('Error', 'Please select an exercise');
       return;
     }
+    // note_only path: just log with the pending note
+    if (isNoteOnlyMove) {
+      const trimmedNote = pendingNote.trim();
+      if (!trimmedNote) {
+        Alert.alert('Note required', 'Tap "Add note" to write a note before logging.');
+        return;
+      }
+      setIsSubmitting(true);
+      try {
+        const now = new Date().toISOString();
+        stampPreviousEntry(now);
+        const entryStartedAt = lastLoggedAt || moveSelectedAt || now;
+        const newEntry = await api.createLogEntry(selectedMove.id, {
+          measurementType: 'note_only',
+          moveName: selectedMove.name,
+          startedAt: entryStartedAt,
+          workoutId: currentWorkout?.id,
+          notes: trimmedNote,
+        });
+        setEntries((prev) => [newEntry, ...prev]);
+        setLastLoggedAt(now);
+        setPendingNote('');
+      } catch {
+        Alert.alert('Error', 'Failed to log entry');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
     if (isIntervalMove) {
       if (totalIntervalSeconds <= 0) {
         Alert.alert('Error', 'Please enter a duration');
@@ -304,6 +339,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
         stampPreviousEntry(now);
 
         const entryStartedAt = lastLoggedAt || moveSelectedAt || now;
+        const trimmedNote = pendingNote.trim();
         const newEntry = await api.createLogEntry(selectedMove.id, {
           measurementType: 'duration',
           moveName: selectedMove.name,
@@ -311,9 +347,11 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
           startedAt: entryStartedAt,
           workoutId: currentWorkout?.id,
           weightUnit,
+          notes: trimmedNote || undefined,
         });
         setEntries((prev) => [newEntry, ...prev]);
         setLastLoggedAt(now);
+        setPendingNote('');
         setIntervalHours('');
         setIntervalMinutes('');
         setIntervalSeconds('');
@@ -344,6 +382,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
       stampPreviousEntry(now);
 
       const entryStartedAt = lastLoggedAt || moveSelectedAt || now;
+      const trimmedNote = pendingNote.trim();
       const newEntry = await api.createLogEntry(selectedMove.id, {
         measurementType: 'strength',
         moveName: selectedMove.name,
@@ -352,9 +391,11 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
         startedAt: entryStartedAt,
         workoutId: currentWorkout?.id,
         weightUnit,
+        notes: trimmedNote || undefined,
       });
       setEntries((prev) => [newEntry, ...prev]);
       setLastLoggedAt(now);
+      setPendingNote('');
 
       // Sticky: keep values visible but mark as sticky
       setIsWeightSticky(true);
@@ -542,7 +583,33 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
             <Text style={styles.logButtonText}>Log Entry</Text>
           )}
         </TouchableOpacity>}
+
+        {/* Note affordance — visible when workout in progress */}
+        {currentWorkout && (
+          <TouchableOpacity
+            style={styles.noteAffordance}
+            onPress={() => setShowNoteModal(true)}
+          >
+            <Text style={styles.noteAffordanceText}>
+              {pendingNote.trim() ? '📝 Note pending' : '📝 Add note'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* note_only prompt */}
+        {isNoteOnlyMove && (
+          <Text style={styles.noteOnlyPrompt}>
+            {pendingNote.trim() ? 'Ready to log.' : 'Tap "Add note" then Log.'}
+          </Text>
+        )}
       </View>
+
+      <NoteModal
+        visible={showNoteModal}
+        initialNote={pendingNote}
+        onSave={(note) => { setPendingNote(note); setShowNoteModal(false); }}
+        onCancel={() => setShowNoteModal(false)}
+      />
 
       <AddMoveModal
         visible={showAddMove}
@@ -723,5 +790,20 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 13,
     marginTop: 8,
+  },
+  noteAffordance: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    marginTop: 4,
+  },
+  noteAffordanceText: {
+    color: '#999',
+    fontSize: 13,
+  },
+  noteOnlyPrompt: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 14,
+    marginTop: 4,
   },
 });
