@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "Glob",
+      "Grep",
+      "TodoWrite"
+    ],
+    "deny": []
+  },
+  "allowedCommands": [
+    "npm *",
+    "npx *",
+    "expo *",
+    "node *",
+    "git *",
+    "ls *",
+    "mkdir *",
+    "cat *",
+    "echo *",
+    "curl *",
+    "../scripts/agent-status.sh *"
+  ],
+  "deniedCommands": [
+    "rm -rf /*",
+    "sudo *",
+    "chmod 777 *"
+  ]
+}
