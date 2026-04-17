@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Move, LogEntry, AuthResponse, Workout } from '../types';
+import { Move, LogEntry, AuthResponse, Workout, MeasurementType } from '../types';
 import {
   MOCK_MOVES,
   MOCK_USER,
@@ -117,10 +117,9 @@ export async function getLogEntries(): Promise<LogEntry[]> {
   );
 }
 
-export type MeasurementType = 'weight' | 'duration';
-
 interface LogEntryPayload {
   measurementType?: MeasurementType;
+  moveName?: string;
   weight?: number;
   reps?: number;
   durationSeconds?: number;
@@ -128,13 +127,14 @@ interface LogEntryPayload {
   endedAt?: string;
   workoutId?: string;
   weightUnit?: string;
+  notes?: string;
 }
 
 export async function createLogEntry(
   moveId: string,
   payload: LogEntryPayload
 ): Promise<LogEntry> {
-  const measurementType = payload.measurementType ?? 'weight';
+  const measurementType = payload.measurementType ?? 'strength';
   const weight = payload.weight ?? 0;
   const reps = payload.reps ?? 0;
   const durationSeconds = payload.durationSeconds ?? 0;
@@ -149,6 +149,7 @@ export async function createLogEntry(
   const entry: LogEntry = {
     id: `mock-entry-${Date.now()}`,
     moveId,
+    moveName: payload.moveName ?? 'Unknown',
     weight,
     reps,
     durationSeconds,
@@ -158,6 +159,7 @@ export async function createLogEntry(
     endedAt: payload.endedAt,
     workoutId: payload.workoutId,
     weightUnit: payload.weightUnit,
+    notes: payload.notes,
   };
   mockLogEntries.push(entry);
   return entry;
