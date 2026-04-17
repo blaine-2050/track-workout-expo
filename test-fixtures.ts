@@ -1,30 +1,29 @@
 /**
- * Test fixtures for Track Workout React Native
+ * Test fixtures for Track Workout Expo
  *
- * Rules:
- * - move: must be a string
- * - weight: stored as int, displayed as decimal with 1 digit
- * - reps: int > 0
- * - timestamps: increasing across the workout
+ * Aligned with track-workout-core DATA_MODEL.md v2.1.
+ * Changes from v1:
+ * - Moves carry measurementType + isCustom
+ * - LogEntries carry moveName + notes
  */
 
-import { Move, LogEntry, User } from './types';
+import { Move, LogEntry, User, MeasurementType } from './types';
 
 // Standard moves used across all platforms (alphabetically sorted by name)
 export const MOCK_MOVES: Move[] = [
-  { id: 'move-01', name: 'Bench Press', sortOrder: 0 },
-  { id: 'move-02', name: 'Bent Over Row', sortOrder: 1 },
-  { id: 'move-03', name: 'Deadlift', sortOrder: 2 },
-  { id: 'move-04', name: 'Elipitical', sortOrder: 3 },
-  { id: 'move-05', name: 'Incline DB Press', sortOrder: 4 },
-  { id: 'move-06', name: 'Lat Pull Down', sortOrder: 5 },
-  { id: 'move-07', name: 'Leg Press', sortOrder: 6 },
-  { id: 'move-08', name: 'Military DB Press', sortOrder: 7 },
-  { id: 'move-09', name: 'MTB', sortOrder: 8 },
-  { id: 'move-10', name: 'Single Arm Snatch', sortOrder: 9 },
-  { id: 'move-11', name: 'Split Squat', sortOrder: 10 },
-  { id: 'move-12', name: 'Squat', sortOrder: 11 },
-  { id: 'move-13', name: 'Treadmill', sortOrder: 12 },
+  { id: 'move-01', name: 'Bench Press', sortOrder: 0, measurementType: 'strength', isCustom: false },
+  { id: 'move-02', name: 'Bent Over Row', sortOrder: 1, measurementType: 'strength', isCustom: false },
+  { id: 'move-03', name: 'Deadlift', sortOrder: 2, measurementType: 'strength', isCustom: false },
+  { id: 'move-04', name: 'Elipitical', sortOrder: 3, measurementType: 'duration', isCustom: false },
+  { id: 'move-05', name: 'Incline DB Press', sortOrder: 4, measurementType: 'strength', isCustom: false },
+  { id: 'move-06', name: 'Lat Pull Down', sortOrder: 5, measurementType: 'strength', isCustom: false },
+  { id: 'move-07', name: 'Leg Press', sortOrder: 6, measurementType: 'strength', isCustom: false },
+  { id: 'move-08', name: 'Military DB Press', sortOrder: 7, measurementType: 'strength', isCustom: false },
+  { id: 'move-09', name: 'MTB', sortOrder: 8, measurementType: 'duration', isCustom: false },
+  { id: 'move-10', name: 'Single Arm Snatch', sortOrder: 9, measurementType: 'strength', isCustom: false },
+  { id: 'move-11', name: 'Split Squat', sortOrder: 10, measurementType: 'strength', isCustom: false },
+  { id: 'move-12', name: 'Squat', sortOrder: 11, measurementType: 'strength', isCustom: false },
+  { id: 'move-13', name: 'Treadmill', sortOrder: 12, measurementType: 'duration', isCustom: false },
 ];
 
 // Map move names to IDs for convenience
@@ -75,10 +74,11 @@ const INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 export const MOCK_LOG_ENTRIES: LogEntry[] = SAMPLE_WORKOUT_RAW.map(
   ([moveName, weight, reps], index) => ({
     id: `log-${String(index + 1).padStart(3, '0')}`,
-    moveId: MOVE_ID_MAP[moveName],
+    moveId: MOVE_ID_MAP[moveName]!,
+    moveName,
     weight,
     reps,
-    measurementType: 'weight',
+    measurementType: 'strength' as MeasurementType,
     timestamp: new Date(BASE_TIMESTAMP.getTime() + index * INTERVAL_MS).toISOString(),
   })
 );

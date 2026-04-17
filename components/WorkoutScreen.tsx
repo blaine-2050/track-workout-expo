@@ -51,8 +51,8 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
   const [timerDisplay, setTimerDisplay] = useState('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const intervalMoveNames = new Set(['MTB', 'Elipitical', 'Treadmill']);
-  const isIntervalMove = selectedMove ? intervalMoveNames.has(selectedMove.name) : false;
+  const isIntervalMove = selectedMove?.measurementType === 'duration';
+  const isNoteOnlyMove = selectedMove?.measurementType === 'note_only';
 
   // Set timer effect
   useEffect(() => {
@@ -255,6 +255,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
         const entryStartedAt = lastLoggedAt || moveSelectedAt || now;
         const newEntry = await api.createLogEntry(selectedMove.id, {
           measurementType: 'duration',
+          moveName: selectedMove.name,
           durationSeconds: totalIntervalSeconds,
           startedAt: entryStartedAt,
           workoutId: currentWorkout?.id,
@@ -293,7 +294,8 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
 
       const entryStartedAt = lastLoggedAt || moveSelectedAt || now;
       const newEntry = await api.createLogEntry(selectedMove.id, {
-        measurementType: 'weight',
+        measurementType: 'strength',
+        moveName: selectedMove.name,
         weight: parseFloat(effectiveWeight),
         reps: parseInt(effectiveReps, 10),
         startedAt: entryStartedAt,
