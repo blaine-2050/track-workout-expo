@@ -17,6 +17,7 @@ import { WorkoutStatusBar } from './WorkoutStatusBar';
 import { AddMoveModal } from './AddMoveModal';
 import { CardioEntry } from './CardioEntry';
 import { NoteModal } from './NoteModal';
+import { SettingsModal } from './SettingsModal';
 import { formatElapsed } from '../utils/formatElapsed';
 import * as api from '../api/client';
 
@@ -47,6 +48,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
   const isCardioRunning = cardioSegmentStart !== null;
   const [pendingNote, setPendingNote] = useState('');
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Sticky inputs state
   const [isWeightSticky, setIsWeightSticky] = useState(false);
@@ -422,6 +424,7 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
         currentWorkout={currentWorkout}
         onStart={handleStartWorkout}
         onStop={handleStopWorkout}
+        onSettings={() => setShowSettings(true)}
         entries={entries}
         moves={moves}
         workouts={workouts}
@@ -609,6 +612,11 @@ export function WorkoutScreen({ onLogout }: WorkoutScreenProps) {
         initialNote={pendingNote}
         onSave={(note) => { setPendingNote(note); setShowNoteModal(false); }}
         onCancel={() => setShowNoteModal(false)}
+      />
+
+      <SettingsModal
+        visible={showSettings}
+        onDismiss={() => setShowSettings(false)}
       />
 
       <AddMoveModal

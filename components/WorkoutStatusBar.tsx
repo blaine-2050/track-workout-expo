@@ -15,6 +15,7 @@ interface WorkoutStatusBarProps {
   currentWorkout: Workout | null;
   onStart: () => void;
   onStop: () => void;
+  onSettings: () => void;
   entries: LogEntry[];
   moves: Move[];
   workouts: Workout[];
@@ -69,6 +70,7 @@ export function WorkoutStatusBar({
   currentWorkout,
   onStart,
   onStop,
+  onSettings,
   entries,
   moves,
   workouts,
@@ -125,6 +127,9 @@ export function WorkoutStatusBar({
         )}
         <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
           <Text style={styles.exportIcon}>&#x2191;</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.exportButton} onPress={onSettings}>
+          <Text style={styles.exportIcon}>&#x2699;</Text>
         </TouchableOpacity>
       </View>
     </View>
